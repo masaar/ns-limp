@@ -1,5 +1,4 @@
 import { NsLimp } from 'nativescript-ns-limp';
-console.log(new NsLimp().message);
 import { Component } from "@angular/core";
 
 @Component({
