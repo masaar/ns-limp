@@ -1,6 +1,6 @@
 {
 	"name": "ns-limp",
-	"version": "4.0.1",
+	"version": "4.0.2",
 	"description": "Nativescript SDK for LIMP",
 	"main": "ns-limp",
 	"typings": "index.d.ts",
@@ -29,7 +29,7 @@
 		"demo-angular.ios": "npm run tsc && cd ../demo-angular && tns run ios --emulator",
 		"demo-angular.android": "npm run tsc && cd ../demo-angular && tns run android --emulator",
 		"demo-angular.reset": "cd ../demo-angular && npx rimraf -- hooks node_modules platforms package-lock.json",
-		"plugin.prepare": "npm run build && cd ../demo && tns plugin remove nativescript-ns-limp && tns plugin add ../src && cd ../demo-angular && tns plugin remove nativescript-ns-limp && tns plugin add ../src",
+		"plugin.prepare": "npm run build && cd ../demo && tns plugin remove ns-limp && tns plugin add ../src && cd ../demo-angular && tns plugin remove ns-limp && tns plugin add ../src",
 		"clean": "npm run demo.reset && npm run demo-angular.reset && npx rimraf -- node_modules package-lock.json && npm i"
 	},
 	"keywords": [
@@ -39,8 +39,8 @@
 		"iOS"
 	],
 	"author": {
-		"name": "Your Name",
-		"email": "youremail@yourdomain.com"
+		"name": "H.Qasim Ali",
+		"email": "h.qasimali007@gmail.com"
 	},
 	"bugs": {
 		"url": "https://github.com/ali4fun/ns-limp/issues"

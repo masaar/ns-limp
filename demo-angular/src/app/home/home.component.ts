@@ -1,6 +1,6 @@
 import { Component, OnInit } from "@angular/core";
 import { take } from 'rxjs/operators';
-import { ApiService, Res, Doc } from 'nativescript-ns-limp/api.service';
+import { ApiService, Res, Doc } from 'ns-limp/api.service';
 
 @Component({
     selector: "Home",

@@ -1,4 +1,4 @@
-import { NsLimp } from 'nativescript-ns-limp';
+import { NsLimp } from 'ns-limp';
 import { Component } from "@angular/core";
 
 @Component({

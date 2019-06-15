@@ -7,9 +7,9 @@ The current SDK has two dependencies:
 * `nativescript-websockets`
 The dependencies should be automatically installed with the library.
 
-## Install ng-limp
+## Install ng-limp for NativeScript
 ```bash
-npm i --save ng-limp
+tns plugin add ns-limp
 ```
 
 ## How to Use
@@ -18,7 +18,7 @@ npm i --save ng-limp
 
 import { Component, OnInit } from '@angular/core';
 
-import { ApiService, Res, Doc } from 'nativescript-ns-limp/api.service';
+import { ApiService, Res, Doc } from 'ns-limp/api.service';
 
 @Component({
 	selector: 'app-root',
