@@ -2,6 +2,8 @@
     <Label class="action-bar-title" text="Home"></Label>
 </ActionBar>
 
-<GridLayout class="page">
+<GridLayout class="page" rows="auto,*">
     <!-- Add your page content here -->
+    <Label row="0" [text]="msg"></Label>
+    <Label row="1" [text]="result" textWrap="true"></Label>
 </GridLayout>

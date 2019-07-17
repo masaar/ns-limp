@@ -1,5 +1,5 @@
-# `ng-limp`
-Official NativeScript Angular SDK for [LIMP](https://github.com/masaar/limp).
+# `ns-limp`
+Official NativeScript Angular SDK for [LIMP](https://github.com/masaar/ns-limp).
 
 # Quick Start
 The current SDK has two dependencies:
@@ -7,7 +7,7 @@ The current SDK has two dependencies:
 * `nativescript-websockets`
 The dependencies should be automatically installed with the library.
 
-## Install ng-limp for NativeScript
+## Install ns-limp for NativeScript
 ```bash
 tns plugin add ns-limp
 ```
@@ -162,6 +162,6 @@ call(endpoint: string, callArgs: callArgs): Observable<Res<Doc>> { /*...*/ }
 ```
 
 # Contribution Guidelines
-Thank you for your interest in `ng-limp`.
+Thank you for your interest in `ns-limp`.
 
-Please refer to [Contribution Guidelines](https://github.com/masaar/ng-limp/blob/master/CONTRIBUTING.md) for more details on contributing to this project.
+Please refer to [Contribution Guidelines](https://github.com/masaar/ns-limp/blob/master/CONTRIBUTING.md) for more details on contributing to this project.

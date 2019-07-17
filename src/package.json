@@ -1,6 +1,6 @@
 {
 	"name": "ns-limp",
-	"version": "4.0.2",
+	"version": "5.0.0",
 	"description": "Nativescript SDK for LIMP",
 	"main": "ns-limp",
 	"typings": "index.d.ts",
@@ -12,7 +12,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ali4fun/ns-limp.git"
+		"url": "https://github.com/masaar/ns-limp"
 	},
 	"scripts": {
 		"tsc": "npm i && tsc",
@@ -43,15 +43,16 @@
 		"email": "h.qasimali007@gmail.com"
 	},
 	"bugs": {
-		"url": "https://github.com/ali4fun/ns-limp/issues"
+		"url": "https://github.com/masaar/ns-limp"
 	},
 	"license": "Apache-2.0",
-	"homepage": "https://github.com/ali4fun/ns-limp",
+	"homepage": "https://github.com/masaar/ns-limp",
 	"readmeFilename": "README.md",
 	"devDependencies": {
 		"tns-core-modules": "^5.0.0",
 		"tns-platform-declarations": "^5.0.0",
 		"nativescript-websockets": "^1.5.3",
+		"@types/node": "^12.0.8",
 		"@angular/core": "~7.1.0",
 		"typescript": "~3.3.3",
 		"prompt": "^1.0.0",
@@ -60,7 +61,6 @@
 		"semver": "^5.6.0"
 	},
 	"dependencies": {
-		"@types/node": "^12.0.8",
 		"jsrsasign": "^8.0.12",
 		"nativescript-websockets": "^1.5.3",
 		"rxjs": "~6.3.0"

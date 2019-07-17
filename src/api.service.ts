@@ -4,12 +4,35 @@ import { webSocket } from 'rxjs/webSocket';
 require('nativescript-websockets');
 import { CacheService } from './cache.service';
 
+import { File } from 'tns-core-modules/file-system';
+
 import * as rs from 'jsrsasign';
 
 const JWS = rs.jws.JWS;
 
-// const API_URL = environment.ws_api;
+export interface queryStep {
 
+	[attr: number]: queryStep | {
+
+		$search?: string;
+
+		$sort?: { [attr: string]: 1 | -1 };
+
+		$skip?: number;
+
+		$limit?: number;
+
+		$extn?: false | Array<string>;
+
+		$attrs?: Array<string>;
+
+		$group: Array<{ by: string; count: number; }>;
+
+		[attr: string]: { $not: any } | { $eq: any } | { $gt: number } | { $gte: number } | { $lt: number } | { $lte: number } | { $bet: [number, number] } | { $all: Array<any> } | { $in: Array<any> } | { $attrs: Array<string>; } | { $skip: false | Array<string>; } | queryStep | any;
+
+	}
+
+}
 export interface callArgs {
 	call_id?: string;
 	endpoint?: string;
@@ -46,13 +69,20 @@ export class ApiService {
 	subject!: Subject<any>;
     anon_token: string= '__ANON_TOKEN_f00000000000000000000012';
     apiURL: string;
-	session!: any;
+    session!: any;
+    fileChunkSize: number = 500 * 1024;
+
+    debug: boolean = false;
 
 	authed: boolean = false;
 	authed$: Subject<boolean> = new Subject();
 
 	constructor(private cache: CacheService) { }
 
+    consoleResult(...res:any){
+        if(this.debug) console.log(...res);
+        else return;
+    }
 	init(API_URL: string, anon_token): Observable<any> {
         this.apiURL = API_URL;
         this.anon_token = anon_token;
@@ -87,25 +117,54 @@ export class ApiService {
 		callArgs.endpoint = endpoint;
 		callArgs.call_id = Math.random().toString(36).substring(7);
 
-		// console.log('callArgs', callArgs);
-		// console.log('sJWT', sJWT);
+		// this.consoleResult('callArgs', callArgs);
+		// this.consoleResult('sJWT', sJWT);
 
 		let filesProcess = [];
 
 		for (let attr of Object.keys(callArgs.doc)) {
-			if (typeof callArgs.doc[attr] == 'object' && callArgs.doc[attr].files instanceof Array) {
-				let files = callArgs.doc[attr];
-				callArgs.doc[attr] = [];
-				for (let file of files.files) {
-					let binary = file.readSync();
-					let byteArray = new Uint8Array(binary);
-					callArgs.doc[attr].push({
-						name: file.name,
-						size: file.size,
-						type: `image/${file.name.split('.').pop()}`,
-						lastModified: file.lastModified,
-						content: byteArray
-					});
+			if (callArgs.doc[attr] instanceof Array && callArgs.doc[attr].length && callArgs.doc[attr][0] instanceof File) {
+                this.consoleResult('attribute', attr );
+				this.consoleResult(callArgs.doc[attr]);
+				for (let i of Object.keys(callArgs.doc[attr]) ){
+                    filesProcess.push(`${attr}.${i}`);
+					let binary = callArgs.doc[attr][i].readSync();
+                    let byteArray = new Uint8Array(binary);
+                    this.consoleResult(i,byteArray);
+                    
+                    let byteArrayIndex: number = 0;
+
+						let chunkIndex: number = 1;
+
+						// let chunksize: number = 500 * 1024;
+
+						while (byteArrayIndex < byteArray.length) {
+							this.consoleResult('attempting to send chunk of 500kb from:', byteArrayIndex, chunkIndex);
+							this.call('file/upload', {
+								doc: {
+									attr: attr,
+									index: i,
+									chunk: chunkIndex,
+									total: Math.ceil(byteArray.length / this.fileChunkSize),
+									file: {
+										name: callArgs.doc[attr][i].name,
+										size: callArgs.doc[attr][i].size,
+										type: callArgs.doc[attr][i].type,
+										lastModified: callArgs.doc[attr][i].lastModified,
+										content: byteArray.slice(byteArrayIndex, byteArrayIndex + this.fileChunkSize).join(',')
+									}
+								}
+							}).subscribe((res) => {
+                                this.consoleResult('file upload', res);
+								filesProcess.splice(filesProcess.indexOf(`${attr}.${i}`), 1);
+
+							});
+
+							byteArrayIndex += this.fileChunkSize;
+
+							chunkIndex += 1;
+
+                        }
 				}
 			}
 		}
@@ -116,7 +175,7 @@ export class ApiService {
 				this.subject
 					.subscribe(
 						(res: Res<Doc>) => {
-							// console.log('message received', res);
+							// this.consoleResult('message received', res);
 							if (res.status == 291) {
 								// [TODO] Create files handling sequence.
 								return;
@@ -147,11 +206,11 @@ export class ApiService {
 
 	pushCall(callArgs: any, filesProcess: Array<string>): void {
 		setTimeout(() => {
-			// console.log('checking filesProcess...');
+			this.consoleResult('checking filesProcess...');
 			if (filesProcess.length) {
 				this.pushCall(callArgs, filesProcess);
 			} else {
-				// console.log('about to push call to subject', this.subject);
+				// this.consoleResult('about to push call to subject', this.subject);
 				// if (callArgs.token == environment.anon_token) {
 				// 	this.subject.next(callArgs);
 				// } else {
@@ -162,9 +221,9 @@ export class ApiService {
 					let tEnd = Math.round((new Date() as any) / 1000) + 86400;
 					let sHeader = JSON.stringify(oHeader);
 					let sPayload = JSON.stringify({ ...callArgs, iat: tNow, exp: tEnd });
-					// console.log(sHeader, sPayload, callArgs.token);
+					// this.consoleResult(sHeader, sPayload, callArgs.token);
 					let sJWT = JWS.sign('HS256', sHeader, sPayload, { utf8: callArgs.token });
-					// console.log('sending request as JWT token:', callArgs, callArgs.token);
+					// this.consoleResult('sending request as JWT token:', callArgs, callArgs.token);
 					this.subject.next({ token: sJWT });
 				// }
 			}
@@ -219,7 +278,12 @@ export class ApiService {
 		return this.call('session/reauth', {
 			sid: 'f00000000000000000000012',
 			token: this.anon_token,
-			query: { _id: { val: sid || 'f00000000000000000000012' }, hash: { val: sJWT.split('.')[1] } }
+            // query: { _id: { val: sid || 'f00000000000000000000012' }, hash: { val: sJWT.split('.')[1] } }
+            query: [
+
+				{ _id: sid || 'f00000000000000000000012', hash: sJWT.split('.')[1] }
+
+			]
 		});
 	}
 
@@ -227,7 +291,8 @@ export class ApiService {
 		let call = new Observable(
 			(observer) => {
 				this.call('session/signout', {
-					query: { _id: { val: this.cache.get('sid') } }
+                    // query: { _id: { val: this.cache.get('sid') } }
+                    query: [{ _id: this.cache.get('sid') }]
 				}).subscribe((res) => {
 					this.authed = false;
 					this.session = undefined;
@@ -249,7 +314,7 @@ export class ApiService {
 	}
 
 	checkAuth(): Observable<any> {
-		// console.log('attempting checkAuth');
+		// this.consoleResult('attempting checkAuth');
 		let check = new Observable(
 			(observer) => {
 				if (!this.cache.get('token') || !this.cache.get('sid')) observer.error(new Error('No credentials cached.'));
