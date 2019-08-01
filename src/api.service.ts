@@ -3,6 +3,7 @@ import { Observable, Subject } from 'rxjs';
 import { webSocket } from 'rxjs/webSocket';
 require('nativescript-websockets');
 import { CacheService } from './cache.service';
+import * as app from 'tns-core-modules/platform/platform';
 
 import { File } from 'tns-core-modules/file-system';
 
@@ -128,8 +129,17 @@ export class ApiService {
 				this.consoleResult(callArgs.doc[attr]);
 				for (let i of Object.keys(callArgs.doc[attr]) ){
                     filesProcess.push(`${attr}.${i}`);
-					let binary = callArgs.doc[attr][i].readSync();
-                    let byteArray = new Uint8Array(binary);
+                    let binary = callArgs.doc[attr][i].readSync();
+                    
+                    let byteArray ;
+					if(app.isAndroid){
+						byteArray = new Uint8Array(binary);
+					} else{
+						let arr= new ArrayBuffer(binary.length);
+						binary.getBytes(arr);
+						byteArray = new Uint8Array(arr);
+					}
+
                     this.consoleResult(i,byteArray);
                     
                     let byteArrayIndex: number = 0;
