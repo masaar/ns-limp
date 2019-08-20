@@ -1,6 +1,6 @@
 {
 	"name": "ns-limp",
-	"version": "5.6.0",
+	"version": "5.6.1",
 	"description": "Nativescript SDK for LIMP",
 	"main": "ns-limp",
 	"typings": "index.d.ts",

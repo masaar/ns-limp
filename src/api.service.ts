@@ -186,7 +186,9 @@ export class ApiService {
 		callArgs.doc = callArgs.doc || {};
 
 		callArgs.endpoint = endpoint;
-		callArgs.call_id = Math.random().toString(36).substring(7);
+        callArgs.call_id = Math.random().toString(36).substring(7);
+        
+        this.consoleResult('callArgs', callArgs);
 
 		let filesProcess = [];
 
@@ -249,10 +251,9 @@ export class ApiService {
 
 		let call = new Observable(
 			(observer) => {
-				this.subject
-					.pipe(take(1)).subscribe(
+				this.subject.subscribe(
 						(res: Res<Doc>) => {
-							// this.consoleResult('message received', res);
+                            this.consoleResult('message received from observer on callId:', res, callArgs.call_id);
 							if (res.status == 291) {
 								// [TODO] Create files handling sequence.
 								return;
@@ -262,7 +263,8 @@ export class ApiService {
 									observer.next(res);
 								} else {
 									observer.error(res);
-								}
+                                }
+                                this.consoleResult('completing the observer. with callId:', res.args.call_id);
 							}
 						}, (err: Res<Doc>) => {
 							if (err.args && err.args.call_id == callArgs.call_id) {
@@ -289,9 +291,9 @@ export class ApiService {
 				let tEnd = Math.round((new Date() as any) / 1000) + 86400;
 				let sHeader = JSON.stringify(oHeader);
 				let sPayload = JSON.stringify({ ...callArgs, iat: tNow, exp: tEnd });
-				// this.consoleResult(sHeader, sPayload, callArgs.token);
+				this.consoleResult(sHeader, sPayload, callArgs.token);
 				let sJWT = JWS.sign('HS256', sHeader, sPayload, { utf8: callArgs.token });
-				// this.consoleResult('sending request as JWT token:', callArgs, callArgs.token);
+				this.consoleResult('sending request as JWT token:', callArgs, callArgs.token);
 				this.subject.next({ token: sJWT });
 
 			}
@@ -343,7 +345,8 @@ export class ApiService {
 			this.cache.remove('sid');
 			this.authed = false;
 			this.session = null;
-			this.authed$.next(null);
+            this.authed$.next(null);
+            this.consoleResult('reauthantication error ....');
 		});
 		return call;
 	}
