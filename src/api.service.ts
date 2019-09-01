@@ -4,7 +4,6 @@ import { webSocket } from 'rxjs/webSocket';
 require('nativescript-websockets');
 import { CacheService } from './cache.service';
 import * as app from 'tns-core-modules/platform/platform';
-import { take } from 'rxjs/operators';
 import { File } from 'tns-core-modules/file-system';
 
 import * as rs from 'jsrsasign';
@@ -64,7 +63,8 @@ export interface callArgs {
 
 export interface Res<T> {
 	args: {
-		call_id: string;
+        call_id: string;
+        watch?: string;
 		// [DOC] Succeful call attrs
 		docs?: Array<T>;
 		count?: number;
@@ -122,10 +122,15 @@ export class ApiService {
 	subject!: Subject<any>;
 	anon_token: string;
 	api: string;
-	session!: Session;
+
 	fileChunkSize: number = 500 * 1024;
 
-	debug: boolean = false;
+    debug: boolean = false;
+
+    session!: Session;
+    
+    inited: boolean = false;
+	inited$: Subject<boolean> = new Subject();
 
 	authed: boolean = false;
 	authed$: Subject<Session> = new Subject();
@@ -137,6 +142,19 @@ export class ApiService {
 		else return;
 	}
 	init(api: string, anon_token): Observable<any> {
+
+        if (this.subject) {
+			this.authed = false;
+			this.session = null;
+			this.authed$.next(null);
+
+			this.inited = false;
+			this.inited$.next(false);
+
+			this.subject.complete();
+			this.subject.unsubscribe();
+        }
+        
 		this.api = api;
 		this.anon_token = anon_token;
 		this.subject = webSocket(this.api);
@@ -144,7 +162,12 @@ export class ApiService {
 			(observer) => {
 				this.subject.subscribe(
 					(res: Res<Doc>) => {
-						if (res.args && res.args.session) {
+                        if (res.args && res.args.code == 'CORE_CONN_READY') {
+                            this.call('conn/verify', {}).subscribe();
+						} else if (res.args && res.args.code == 'CORE_CONN_OK') {
+							this.inited = true;
+							this.inited$.next(true);
+						} else if (res.args && res.args.session) {
 							this.consoleResult('Response has session obj');
 							if (res.args.session._id == 'f00000000000000000000012') {
 								this.authed = false;
@@ -165,10 +188,15 @@ export class ApiService {
 						observer.next(res);
 					},
 					(err: Res<Doc>) => {
+                        this.inited = false;
+						this.inited$.next(false);
 						observer.error(err);
 					},
 					() => {
-						this.reconnect();
+                        this.inited = false;
+                        this.inited$.next(false);
+                        observer.complete();
+						// this.reconnect();
 					}
 				);
 			}
@@ -233,7 +261,7 @@ export class ApiService {
 									content: byteArray.slice(byteArrayIndex, byteArrayIndex + this.fileChunkSize).join(',')
 								}
 							}
-						}).pipe(take(1)).subscribe((res) => {
+						}).subscribe((res) => {
 							this.consoleResult('file upload', res);
 							filesProcess.splice(filesProcess.indexOf(`${attr}.${i}`), 1);
 
@@ -265,13 +293,19 @@ export class ApiService {
 									observer.error(res);
                                 }
                                 this.consoleResult('completing the observer. with callId:', res.args.call_id);
+
+                                if (!res.args.watch) {
+									observer.complete();
+									observer.unsubscribe();
+									// observable.unsubscribe();
+								}
 							}
 						}, (err: Res<Doc>) => {
 							if (err.args && err.args.call_id == callArgs.call_id) {
 								observer.error(err);
 							}
 						}, () => {
-							observer.complete();
+							// observer.complete();
 						}
 					);
 			}
@@ -315,12 +349,12 @@ export class ApiService {
 			(observer) => {
 				this.call('session/auth', {
 					doc: doc
-				}).pipe(take(1)).subscribe((res: Res<Session>) => {
+				}).subscribe((res: Res<Session>) => {
 					observer.next(res);
 				}, (err: Res<Doc>) => {
 					observer.error(err);
 				}, () => {
-					observer.complete();
+					// observer.complete();
 				});
 			}
 		);
@@ -340,7 +374,7 @@ export class ApiService {
 			]
 		});
 
-		call.pipe(take(1)).subscribe((res: Res<Session>) => { }, (err: Res<Session>) => {
+		call.subscribe((res: Res<Session>) => { }, (err: Res<Session>) => {
 			this.cache.remove('token');
 			this.cache.remove('sid');
 			this.authed = false;
@@ -358,7 +392,7 @@ export class ApiService {
 					query: [
 						{ _id: this.cache.get('sid') }
 					]
-				}).pipe(take(1)).subscribe((res: Res<Session>) => {
+				}).subscribe((res: Res<Session>) => {
 					observer.next(res);
 				}, (err: Res<Doc>) => {
 					observer.error(err);
@@ -373,7 +407,7 @@ export class ApiService {
 		let check = new Observable<Res<Doc>>(
 			(observer) => {
 				if (!this.cache.get('token') || !this.cache.get('sid')) observer.error(new Error('No credentials cached.'));
-				this.reauth(this.cache.get('sid'), this.cache.get('token')).pipe(take(1)).subscribe(
+				this.reauth(this.cache.get('sid'), this.cache.get('token')).subscribe(
 					(res: Res<Session>) => {
 						observer.next(res);
 					},
@@ -383,7 +417,7 @@ export class ApiService {
 							message: 'Wrong credentials cached.'
 						})
 					},
-					() => observer.complete()
+					// () => observer.complete()
 				);
 			}
 		);
