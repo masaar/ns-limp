@@ -23,7 +23,7 @@
     "@angular/router": "~8.0.0",
     "nativescript-angular": "~8.0.0",
     "nativescript-theme-core": "~1.0.4",
-    "ns-limp": "file:ns-limp-5.0.0.tgz",
+    "ns-limp": "file:ns-limp-5.7.0-b3.tgz",
     "reflect-metadata": "~0.1.12",
     "rxjs": "~6.5.0",
     "tns-core-modules": "~5.4.0",

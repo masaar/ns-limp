@@ -12,10 +12,8 @@ export class HomeComponent implements OnInit {
     msg: string;
     result: string;
     constructor( 
-        private api:ApiService, private cdr: ChangeDetectorRef
-        ) {
+        private api:ApiService, private cdr: ChangeDetectorRef) {
         // Use the component constructor to inject providers.
-
     }
 
     ngOnInit(): void {

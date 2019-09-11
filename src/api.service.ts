@@ -4,6 +4,7 @@ import { webSocket } from 'rxjs/webSocket';
 require('nativescript-websockets');
 import { CacheService } from './cache.service';
 import * as app from 'tns-core-modules/platform/platform';
+import { retry } from 'rxjs/operators';
 import { File } from 'tns-core-modules/file-system';
 
 import * as rs from 'jsrsasign';
@@ -63,8 +64,8 @@ export interface callArgs {
 
 export interface Res<T> {
 	args: {
-        call_id: string;
-        watch?: string;
+		call_id: string;
+		watch?: string;
 		// [DOC] Succeful call attrs
 		docs?: Array<T>;
 		count?: number;
@@ -114,23 +115,31 @@ export interface User extends Doc {
 		[key: string]: any;
 	}
 }
+export interface InitedStatus {
+	INITED: 'INITED';
+	NOT_INITED: 'NOT_INITED';
+	FINISHED: 'FINISHED'
+}
 
 @Injectable({
 	providedIn: 'root'
 })
 export class ApiService {
-	subject!: Subject<any>;
-	anon_token: string;
-	api: string;
 
+	debug: boolean = true;
 	fileChunkSize: number = 500 * 1024;
+	authHashLevel: 5.0 | 5.6 = 5.6;
 
-    debug: boolean = false;
+	subject!: Subject<any>;
+	skipForceRetry: boolean = false;
 
-    session!: Session;
-    
-    inited: boolean = false;
-	inited$: Subject<boolean> = new Subject();
+	api!: string;
+	anon_token: string;
+
+	session!: Session;
+
+	inited: InitedStatus['INITED'] | InitedStatus['NOT_INITED'] | InitedStatus['FINISHED'] = 'NOT_INITED';
+	inited$: Subject<InitedStatus['INITED'] | InitedStatus['NOT_INITED'] | InitedStatus['FINISHED']> = new Subject();
 
 	authed: boolean = false;
 	authed$: Subject<Session> = new Subject();
@@ -141,70 +150,105 @@ export class ApiService {
 		if (this.debug) console.log(...res);
 		else return;
 	}
-	init(api: string, anon_token): Observable<any> {
+	init(api: string, anonToken: string, retryCount: number = 10, forceRetry: boolean = true): Observable<any> {
+		this.consoleResult('Resetting SDK before init');
+		this.reset();
 
-        if (this.subject) {
-			this.authed = false;
-			this.session = null;
-			this.authed$.next(null);
-
-			this.inited = false;
-			this.inited$.next(false);
-
-			this.subject.complete();
-			this.subject.unsubscribe();
-        }
-        
 		this.api = api;
-		this.anon_token = anon_token;
+		// this.anon_token = anon_token;
 		this.subject = webSocket(this.api);
-		let init = new Observable(
-			(observer) => {
-				this.subject.subscribe(
-					(res: Res<Doc>) => {
-                        if (res.args && res.args.code == 'CORE_CONN_READY') {
-                            this.call('conn/verify', {}).subscribe();
-						} else if (res.args && res.args.code == 'CORE_CONN_OK') {
-							this.inited = true;
-							this.inited$.next(true);
-						} else if (res.args && res.args.session) {
-							this.consoleResult('Response has session obj');
-							if (res.args.session._id == 'f00000000000000000000012') {
-								this.authed = false;
-								this.session = null;
-								this.authed$.next(null);
-								this.cache.remove('token');
-								this.cache.remove('sid');
-								this.consoleResult('Session is null');
-							} else {
-								this.cache.put('sid', res.args.session._id);
-								this.cache.put('token', res.args.session.token);
-								this.authed = true;
-								this.session = res.args.session;
-								this.authed$.next(this.session);
-								this.consoleResult('Session updated');
-							}
-						}
-						observer.next(res);
-					},
-					(err: Res<Doc>) => {
-                        this.inited = false;
-						this.inited$.next(false);
-						observer.error(err);
-					},
-					() => {
-                        this.inited = false;
-                        this.inited$.next(false);
-                        observer.complete();
-						// this.reconnect();
-					}
-				);
-			}
-		);
-		return init;
-	}
 
-	reconnect(): void {
+
+		this.subject.pipe(retry(retryCount))
+			.subscribe((res: Res<Doc>) => {
+				this.consoleResult('received new message', res);
+				if (res.args && res.args.code == 'CORE_CONN_READY') {
+					this.reset(true);
+					this.anon_token = anonToken;
+					this.call('conn/verify', {}).subscribe();
+				} else if (res.args && res.args.code == 'CORE_CONN_OK') {
+					this.inited = 'INITED';
+					this.inited$.next('INITED');
+				} else if (res.args && res.args.code == 'CORE_CONN_CLOSED') {
+					this.reset();
+				} else if (res.args && res.args.session) {
+
+					this.consoleResult('Response has session obj');
+					if (res.args.session._id == 'f00000000000000000000012') {
+						if (this.authed) {
+							this.authed = false;
+							this.session = null;
+							this.authed$.next(null);
+						}
+						this.cache.remove('token');
+						this.cache.remove('sid');
+						this.consoleResult('Session is null');
+					} else {
+						this.cache.put('sid', res.args.session._id);
+						this.cache.put('token', res.args.session.token);
+						this.authed = true;
+						this.session = res.args.session;
+						this.authed$.next(this.session);
+						this.consoleResult('Session updated');
+					}
+				}
+			},
+				(err: Res<Doc>) => {
+					this.consoleResult('Received error : ', err);
+					this.reset(false, 'FINISHED');
+				},
+				() => {
+					this.consoleResult('Connection clean-closed');
+
+					this.reset(false, 'FINISHED');
+
+					if (!this.skipForceRetry && forceRetry) {
+
+						if (retryCount-- < 1) {
+
+							this.consoleResult('Skipped re-init connection after clean-close due to out-of-count retryCount.');
+
+						} else {
+
+							this.consoleResult('Re-init connection after clean-close due to forceRetry.');
+
+							this.init(api, anonToken, retryCount--, forceRetry);
+
+						}
+
+					}
+				}
+			);
+
+		this.skipForceRetry = false;
+		return this.subject;
+
+	}
+	///// not use this close methed.....//////
+	close(): Observable<Res<Doc>> {
+		return this.call('conn/close', {});
+	}
+	reset(skipSubject: boolean = false, initedStatus: InitedStatus['NOT_INITED'] | InitedStatus['FINISHED'] = 'NOT_INITED'): void {
+
+		try {
+			this.authed = false;
+			if (this.session) {
+				this.session = null;
+				this.authed = false;
+				this.authed$.next(null);
+			}
+
+			if (this.inited) {
+				this.inited = initedStatus;
+				this.inited$.next(initedStatus);
+			}
+
+			if (!skipSubject) {
+				this.skipForceRetry = true;
+				this.subject.complete();
+				this.subject.unsubscribe();
+			}
+		} catch { }
 	}
 
 	call(endpoint: string, callArgs: callArgs, binary: boolean = false): Observable<any> {
@@ -214,9 +258,9 @@ export class ApiService {
 		callArgs.doc = callArgs.doc || {};
 
 		callArgs.endpoint = endpoint;
-        callArgs.call_id = Math.random().toString(36).substring(7);
-        
-        this.consoleResult('callArgs', callArgs);
+		callArgs.call_id = Math.random().toString(36).substring(7);
+
+		this.consoleResult('callArgs', callArgs);
 
 		let filesProcess = [];
 
@@ -280,34 +324,35 @@ export class ApiService {
 		let call = new Observable(
 			(observer) => {
 				this.subject.subscribe(
-						(res: Res<Doc>) => {
-                            this.consoleResult('message received from observer on callId:', res, callArgs.call_id);
-							if (res.status == 291) {
-								// [TODO] Create files handling sequence.
-								return;
-							}
-							if (res.args && res.args.call_id == callArgs.call_id) {
-								if (res.status == 200) {
-									observer.next(res);
-								} else {
-									observer.error(res);
-                                }
-                                this.consoleResult('completing the observer. with callId:', res.args.call_id);
-
-                                if (!res.args.watch) {
-									observer.complete();
-									observer.unsubscribe();
-									// observable.unsubscribe();
-								}
-							}
-						}, (err: Res<Doc>) => {
-							if (err.args && err.args.call_id == callArgs.call_id) {
-								observer.error(err);
-							}
-						}, () => {
-							// observer.complete();
+					(res: Res<Doc>) => {
+						this.consoleResult('message received from observer on callId:', res, callArgs.call_id);
+						if (res.status == 291) {
+							// [TODO] Create files handling sequence.
+							return;
 						}
-					);
+						if (res.args && res.args.call_id == callArgs.call_id) {
+							if (res.status == 200) {
+								observer.next(res);
+							} else {
+								observer.error(res);
+							}
+							
+
+							if (!res.args.watch) {
+                                this.consoleResult('completing the observer. with callId:', res.args.call_id);
+								observer.complete();
+								observer.unsubscribe();
+								// observable.unsubscribe();
+							}
+						}
+					}, (err: Res<Doc>) => {
+						if (err.args && err.args.call_id == callArgs.call_id) {
+							observer.error(err);
+						}
+					}, () => {
+						// observer.complete();
+					}
+				);
 			}
 		);
 		return call;
@@ -328,7 +373,7 @@ export class ApiService {
 				this.consoleResult(sHeader, sPayload, callArgs.token);
 				let sJWT = JWS.sign('HS256', sHeader, sPayload, { utf8: callArgs.token });
 				this.consoleResult('sending request as JWT token:', callArgs, callArgs.token);
-				this.subject.next({ token: sJWT });
+				this.subject.next({ token: sJWT, call_id: callArgs.call_id });
 
 			}
 		}, 100);
@@ -337,7 +382,11 @@ export class ApiService {
 	generateAuthHash(authVar: 'username' | 'email' | 'phone', authVal: string, password: string): string {
 		let oHeader = { alg: 'HS256', typ: 'JWT' };
 		let sHeader = JSON.stringify(oHeader);
-		let sPayload = JSON.stringify({ hash: [authVar, authVal, password, this.anon_token] });
+		let hashObj = [authVar, authVal, password];
+		if (this.authHashLevel == 5.6) {
+			hashObj.push(this.anon_token);
+		}
+		let sPayload = JSON.stringify({ hash: hashObj });
 		let sJWT = JWS.sign('HS256', sHeader, sPayload, { utf8: password });
 		return sJWT.split('.')[1];
 	}
@@ -345,19 +394,8 @@ export class ApiService {
 	auth(authVar: 'username' | 'email' | 'phone', authVal: string, password: string): Observable<any> {
 		let doc: any = { hash: this.generateAuthHash(authVar, authVal, password) };
 		doc[authVar] = authVal;
-		let call = new Observable(
-			(observer) => {
-				this.call('session/auth', {
-					doc: doc
-				}).subscribe((res: Res<Session>) => {
-					observer.next(res);
-				}, (err: Res<Doc>) => {
-					observer.error(err);
-				}, () => {
-					// observer.complete();
-				});
-			}
-		);
+		let call = this.call('session/auth', { doc: doc });
+		call.subscribe();
 		return call;
 	}
 
@@ -377,50 +415,32 @@ export class ApiService {
 		call.subscribe((res: Res<Session>) => { }, (err: Res<Session>) => {
 			this.cache.remove('token');
 			this.cache.remove('sid');
-			this.authed = false;
-			this.session = null;
-            this.authed$.next(null);
-            this.consoleResult('reauthantication error ....');
+			if (this.authed) {
+				this.authed = false;
+				this.session = null;
+				this.authed$.next(null);
+			}
+			this.consoleResult('reauthantication error ....');
 		});
 		return call;
 	}
 
 	signout(): Observable<Res<Doc>> {
-		let call = new Observable<Res<Doc>>(
-			(observer) => {
-				this.call('session/signout', {
-					query: [
-						{ _id: this.cache.get('sid') }
-					]
-				}).subscribe((res: Res<Session>) => {
-					observer.next(res);
-				}, (err: Res<Doc>) => {
-					observer.error(err);
-				});
-			}
-		);
+		let call = this.call('session/signout', {
+			query: [
+				{ _id: this.cache.get('sid') }
+			]
+		});
+		call.subscribe();
 		return call;
 	}
 
 	checkAuth(): Observable<Res<Doc>> {
 		this.consoleResult('attempting checkAuth');
-		let check = new Observable<Res<Doc>>(
-			(observer) => {
-				if (!this.cache.get('token') || !this.cache.get('sid')) observer.error(new Error('No credentials cached.'));
-				this.reauth(this.cache.get('sid'), this.cache.get('token')).subscribe(
-					(res: Res<Session>) => {
-						observer.next(res);
-					},
-					(err: Res<Doc>) => {
-						observer.error({
-							status: 403,
-							message: 'Wrong credentials cached.'
-						})
-					},
-					// () => observer.complete()
-				);
-			}
-		);
-		return check;
+
+		if (!this.cache.get('token') || !this.cache.get('sid')) throw new Error('No credentials cached.');
+		let call = this.reauth(this.cache.get('sid'), this.cache.get('token'));
+		return call;
+
 	}
 }
