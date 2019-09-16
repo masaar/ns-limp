@@ -35,7 +35,8 @@
     "@angular/compiler-cli": "~8.0.0",
     "@ngtools/webpack": "~8.0.0",
     "nativescript-dev-typescript": "~0.10.0",
-    "nativescript-dev-webpack": "~0.24.0"
+    "nativescript-dev-webpack": "~0.24.0",
+    "webpack-bundle-analyzer": "3.3.2"
   },
   "gitHead": "741012cc7bed3bca055d6453e83fff51387deac3",
   "readme": "NativeScript Application"
