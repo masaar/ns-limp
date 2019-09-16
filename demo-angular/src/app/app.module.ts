@@ -3,6 +3,8 @@ import { NativeScriptModule } from "nativescript-angular/nativescript.module";
 
 import { AppRoutingModule } from "./app-routing.module";
 import { AppComponent } from "./app.component";
+import { NativeScriptFormsModule } from "nativescript-angular/forms";
+
 
 @NgModule({
     bootstrap: [
@@ -10,7 +12,9 @@ import { AppComponent } from "./app.component";
     ],
     imports: [
         NativeScriptModule,
-        AppRoutingModule
+        NativeScriptFormsModule,
+        AppRoutingModule,
+       
     ],
     declarations: [
         AppComponent

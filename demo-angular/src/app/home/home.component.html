@@ -1,9 +1,59 @@
-<ActionBar class="action-bar">
-    <Label class="action-bar-title" text="Home"></Label>
-</ActionBar>
-
-<GridLayout class="page" rows="auto,*">
+<GridLayout class="page" rows="auto,*,auto">
+    <Label row="0" text="NS-LIMP" style="font-weight: bold; font-size: 20; text-align: center;"></Label>
     <!-- Add your page content here -->
-    <Label row="0" [text]="msg"></Label>
-    <Label row="1" [text]="result" textWrap="true"></Label>
+    <ScrollView row="1">
+        <StackLayout *ngIf="(layout == 'query')">
+            <TextField hint="Server IP" [(ngModel)]="serverIp" secure="false" returnKeyType="done" autocorrect="false"
+                class="input input-border"></TextField>
+            <TextField hint="Token" [(ngModel)]="token" secure="false" returnKeyType="done" autocorrect="false"
+                class="input input-border"></TextField>
+            <StackLayout orientation="horizontal" horizontalAlignment="center">
+                <button text="initialize" (tap)="init()"></button>
+                <button text="Close conn" (tap)="closeConn()"></button>
+                <Label [text]="conn_status" style="font-size: 14; vertical-align: middle; font-weight: bold;"></Label>
+            </StackLayout>
+
+            <Label [text]="'login Type: ' + userType"
+                style="font-weight: bold; margin-top: 5; font-size: 18; text-align: center;" (tap)="authType()"></Label>
+            <TextField hint="User Name" [(ngModel)]="userName" secure="false" returnKeyType="done" autocorrect="false"
+                class="input input-border"></TextField>
+            <TextField hint="Password" [(ngModel)]="password" secure="false" returnKeyType="done" autocorrect="false"
+                class="input input-border"></TextField>
+
+            <StackLayout orientation="horizontal" horizontalAlignment="center">
+                <button text="sign Out" (tap)="signout()"></button>
+                <button text="Auth" (tap)="auth()"></button>
+                <Label [text]="api.authed"
+                    style="font-size: 18; text-align: center; vertical-align: middle; font-weight: bold;"></Label>
+            </StackLayout>
+
+            <TextField hint="end point" [(ngModel)]="endPoint" secure="false" returnKeyType="done" autocorrect="false"
+                class="input input-border"></TextField>
+            <TextView [(ngModel)]="query" hint="enter qury" class="input input-border" style="height: 80;"></TextView>
+            <TextView [(ngModel)]="doc" hint="doc" class="input input-border" style="height: 80;"></TextView>
+            <Label [text]=" imageFile.length + ' files selected...'"></Label>
+            <button text="call" (tap)="call()"></button>
+
+            
+            <StackLayout orientation="horizontal" horizontalAlignment="center">
+                <button text="Select file" (tap)="selectImage()"></button>
+                <button text="upload file" (tap)="fileUpload()"></button>
+            </StackLayout>
+        </StackLayout>
+    </ScrollView>
+
+    <GridLayout row="1" *ngIf="(layout == 'log')" style=" margin: 10;" rows="auto, *">
+        <Button row="0" text="Clear" (tap)="clear()"></Button>
+        <ListView row="1" [items]="results">
+            <ng-template let-item="item" let-i="index" let-odd="odd" let-even="even">
+                <StackLayout>
+                    <Label [text]="item | json" textWrap="true"></Label>
+                </StackLayout>
+            </ng-template>
+        </ListView>
+    </GridLayout>
+    <StackLayout row="2" orientation="horizontal" horizontalAlignment="center">
+        <Button text="Query" (tap)="layout = 'query'"></Button>
+        <button text="Log" (tap)="layout = 'log'"></button>
+    </StackLayout>
 </GridLayout>
