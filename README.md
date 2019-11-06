@@ -29,16 +29,23 @@ export class AppComponent implements OnInit {
 	constructor(private api: ApiService) {}
 
 	ngOnInit() {
-		this.api.init('ws://localhost:8081/ws', '__ANON');
+		this.api.init({
+			api: 'ws://localhost:8081/ws',
+			anonToken: '__ANON',
+			authAttrs: ['email']
+		});
 	}
 }
 ```
 
-## Setting Global Variables
-There are two variables that you can set before initiating the SDK:
-1. `debug`: A `Boolean` representing the debug mode status on the SDK. If `true`, you would see verbose messages in the browser console about messages transferred are received. Default `false`.
-2. `fileChunkSize`: A `Number` representing the chunk size in bytes of the files being uploaded as part of the process of pushing binary data to LIMP app. Default `512000`.
-3. `authHashLevel`: Either `5.0` or `5.6`. With the change to auth hash generation introduced in APIv5.6 of LIMP, some legacy apps are left without the ability to upgrade to APIv5.6 and beyond due to hashes difference. SDKv5.7 is adding `authHashLevel` to allow developers to use higher APIs and SDKs with legacy apps. Default `5.6`;
+## SDK Config
+When initialising the SDK, you should pass an object matching the interface `SDKConfig`, which has the following attributes:
+1. `api` (Required): The URI of LIMP app you are connecting to.
+2. `anonToken` (Required): LIMP app `ANON_TOKEN`.
+3. `authAttrs` (Required): As of LIMP APIv5.8, LIMP apps don't have strict User module attrs structure. This includes the authentication attrs that are set per app. This attribute represents an `Array<string>` referring to the same authentication attrs of the app.
+4. `debug` (Optional): A `Boolean` representing the debug mode status on the SDK. If `true`, you would see verbose messages in the browser console about messages transferred are received. Default `false`.
+5. `fileChunkSize` (Optional): A `Number` representing the chunk size in bytes of the files being uploaded as part of the process of pushing binary data to LIMP app. Default `512000`.
+6. `authHashLevel` (Optional): Either `5.0` or `5.6`. With the change to auth hash generation introduced in APIv5.6 of LIMP, some legacy apps are left without the ability to upgrade to APIv5.6 and beyond due to hashes difference. SDKv5.7 is adding `authHashLevel` to allow developers to use higher APIs and SDKs with legacy apps. Default `5.6`;
 
 # Best Practices
 You can use the SDK 100% per your style of development, however we have some tips:
@@ -76,7 +83,7 @@ Websockets are always-alive connections. A lot can go wrong here resulting in th
 ```typescript
 import { Component, OnInit } from '@angular/core';
 
-import { ApiService, Res } from 'ns-limp/api.service'
+import { ApiService, Res } from 'ns-limp/api.service';
 
 @Component({
 	selector: 'app-root',
@@ -107,7 +114,11 @@ export class AppComponent implements OnInit {
 	}
 
 	init(): void {
-		this.api.init('ws://localhost:8081/ws', 'http://localhost:8081', '__ANON');
+		this.api.init({
+			api: 'ws://localhost:8081/ws',
+			anonToken: '__ANON',
+			authAttrs: ['email']
+		});
 	}
 }
 ```
@@ -132,7 +143,7 @@ A `Subject<Boolean | Doc>` you can subscribe to handle changes to state of user 
 ## `init()`
 The base method to initiate a connection with LIMP app. This method returns an `Observable` for chain subscription if for any reason you need to read every message being received from the API, however subscribing to it is not required. Method definition:
 ```typescript
-init(api: String, anon_token: String): Observable<Res<Doc>> { /*...*/ }
+init(api: String, anonToken: String): Observable<Res<Doc>> { /*...*/ }
 ```
 
 ## `close()`
@@ -144,7 +155,7 @@ close(): Observable<Res<Doc>> { /*...*/ }
 ## `auth()`
 The method you can use to authenticate the user. This method returns an `Observable` for chain subscription if for any reason you need to read the response of the `auth` call, however subscribing to it is not required. Method definition:
 ```typescript
-auth(authVar: 'username' | 'email' | 'phone', authVal: string, password: string): Observable<Res<Doc>> { /*...*/ }
+auth(authVar: string, authVal: string, password: string): Observable<Res<Doc>> { /*...*/ }
 ```
 
 ## `reauth()`
@@ -168,10 +179,10 @@ checkAuth(): Observable<Res<Doc>> { /*...*/ }
 ## `generateAuthHash()`
 The method to use to generate authentication hashes. This is used internally for the [`auth()`](#auth) call. However, you also need this to generate the values when creating a user. Method definition:
 ```typescript
-generateAuthHash(authVar: 'username' | 'email' | 'phone', authVal: string, password: string): string { /*...*/ }
+generateAuthHash(authVar: string, authVal: string, password: string): string { /*...*/ }
 ```
 
-## `deleteWatch`
+## `deleteWatch()`
 The method to delete a watch in progress. You can pass the watch ID you want to delete or `__all` to delete all watches. This method returns an `Observable` for chain subscription if for any reason you need the response of the `deleteWatch` call, however subscribing to it is not required. Method definition:
 ```typescript
 deleteWatch(watch: string | '__all'): Observable<Res<Doc>> { /*...*/ }
