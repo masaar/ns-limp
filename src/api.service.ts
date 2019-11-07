@@ -13,7 +13,7 @@ import {
 	resumeEvent, suspendEvent, ApplicationEventData, on as applicationOn, run as applicationRun
 } from "tns-core-modules/application";
 
-// version 5.8.0
+// version 5.8.3
 export interface QueryStep {
 	$search?: string;
 	$sort?: {
@@ -195,7 +195,11 @@ export class ApiService {
 				}
 				this.queue.noAuth = [];
 			} else {
-				this.heartbeat$.unsubscribe();
+				try {
+					this.heartbeat$.unsubscribe();
+				} catch (error) {
+					this.log('log','Hearbeat unsubcribition error');
+				}
 			}
 		});
 
@@ -232,7 +236,11 @@ export class ApiService {
 		});
 		applicationOn(suspendEvent, (args: ApplicationEventData) => {
 			this.appActive = false;
-			this.heartbeat$.unsubscribe();
+			try {
+				this.heartbeat$.unsubscribe();
+			} catch (error) {
+				this.log('log','Hearbeat unsubcribition error');
+			}
 		});
 
 	}

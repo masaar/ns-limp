@@ -1,13 +1,13 @@
 {
 	"name": "ns-limp",
-	"version": "5.8.1",
+	"version": "5.8.4",
 	"description": "Nativescript SDK for LIMP",
 	"main": "ns-limp",
 	"typings": "index.d.ts",
 	"nativescript": {
 		"platforms": {
-			"android": "5.4.0",
-			"ios": "5.4.0"
+			"android": "6.0.0",
+			"ios": "6.0.1"
 		}
 	},
 	"repository": {
@@ -49,12 +49,12 @@
 	"homepage": "https://github.com/masaar/ns-limp",
 	"readmeFilename": "README.md",
 	"devDependencies": {
-		"tns-core-modules": "^5.0.0",
-		"tns-platform-declarations": "^5.0.0",
 		"nativescript-websockets": "^1.5.3",
 		"@types/node": "^12.0.8",
-		"@angular/core": "~7.1.0",
-		"typescript": "~3.3.3",
+		"@angular/core": "~8.2.0",
+		"tns-core-modules": "^6.1.0",
+		"tns-platform-declarations": "^6.1.2",
+		"typescript": "~3.4.5",
 		"prompt": "^1.0.0",
 		"rimraf": "^2.6.3",
 		"tslint": "^5.12.1",
@@ -62,8 +62,8 @@
 	},
 	"dependencies": {
 		"jsrsasign": "^8.0.12",
-		"nativescript-websockets": "^1.5.3",
-		"rxjs": "~6.3.0"
+		"nativescript-websockets": "^1.5.4",
+		"rxjs": "~6.4.0"
 	},
 	"bootstrapper": "nativescript-plugin-seed"
 }
