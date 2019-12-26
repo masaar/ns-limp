@@ -14,6 +14,15 @@ import {
 } from "tns-core-modules/application";
 
 // version 5.8.3
+export interface SDKConfig {
+	api: string;
+	anonToken: string;
+	authAttrs: Array<string>;
+	debug?: boolean;
+	fileChunkSize?: number;
+	authHashLevel?: 5.0 | 5.6;
+}
+
 export interface QueryStep {
 	$search?: string;
 	$sort?: {
@@ -27,10 +36,17 @@ export interface QueryStep {
 		by: string;
 		count: number;
 	}>;
+	$geo_near?: {
+		val: [number, number];
+		attr: string;
+		dist: number
+	};
 	[attr: string]: {
-		$not: any;
+		$ne: any;
 	} | {
 		$eq: any;
+	} | {
+		$regex: string;
 	} | {
 		$gt: number | string;
 	} | {
@@ -49,9 +65,14 @@ export interface QueryStep {
 		$attrs: Array<string>;
 	} | {
 		$skip: false | Array<string>;
-	} | Query | string | { [attr: string]: 1 | -1; } | number | false | Array<string>;
+	} | Query | string | { [attr: string]: 1 | -1; } | number | false | Array<string> | {
+		val: [number, number];
+		attr: string;
+		dist: number;
+	};
 }
-export interface Query extends Array<QueryStep> { }
+
+export interface Query extends Array<QueryStep | Query> {}
 
 export interface callArgs {
 	call_id?: string;
@@ -105,21 +126,7 @@ export interface User extends Doc {
 	status: 'active' | 'banned' | 'deleted' | 'disabled_password',
 	attrs: {
 		[key: string]: any;
-	}
-}
-export interface InitedStatus {
-	INITED: 'INITED';
-	NOT_INITED: 'NOT_INITED';
-	FINISHED: 'FINISHED'
-}
-
-export interface SDKConfig {
-	api: string;
-	anonToken: string;
-	authAttrs: Array<string>;
-	debug?: boolean;
-	fileChunkSize?: number;
-	authHashLevel?: 5.0 | 5.6;
+	};
 }
 
 @Injectable({
@@ -245,7 +252,7 @@ export class ApiService {
 
 	}
 
-	log(level: 'log' | 'info' | 'warn' | 'error', ...data: any): void {
+	log(level: 'log' | 'info' | 'warn' | 'error', ...data: Array<any>): void {
 		if (!this.config.debug) return;
 		else console[level](...data);
 	}
@@ -253,7 +260,7 @@ export class ApiService {
 	init(config: SDKConfig): Observable<Res<Doc>> {
 		Object.assign(this.config, config);
 		if (this.config.authAttrs.length == 0) {
-			throw new Error('SDK Auth not set');
+			throw new Error('SDK authAttrs not set');
 		}
 		this.log('log', 'Resetting SDK before init');
 		this.reset();
@@ -417,7 +424,7 @@ export class ApiService {
 					this.log('log', 'sending request as JWT token:', callArgs, callArgs.token);
 					this.subject.next({ token: sJWT, call_id: callArgs.call_id });
 				}, error: (err) => {
-					this.log('error', 'Received error on fileSubject/filesSubjects: ', err); // Specify subject for better debugging.
+					this.log('error', 'Received error on filesSubjects: ', err); // Specify subject for better debugging.
 				}
 			});
 		} else {

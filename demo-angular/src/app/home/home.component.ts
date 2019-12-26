@@ -43,7 +43,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        this.api.debug = true;
         this.api.inited$.subscribe(
             (init) => {
                 if (init) {
@@ -194,7 +193,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     init(): void {
         this.conn_status = 'connecting';
         this.connectionOpen = true;
-        this.api.init(this.serverIp, this.token);
+        
+        this.api.init({
+            api: this.serverIp,
+            anonToken: this.token,
+            authAttrs: ['email','username','phone'],
+            debug: true
+        });
     }
 
     changeDetection(){
