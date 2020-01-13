@@ -389,7 +389,7 @@ export class ApiService {
 								name: callArgs.doc[attr][i].name,
 								size: callArgs.doc[attr][i].size,
 								type: callArgs.doc[attr][i].type,
-								lastModified: callArgs.doc[attr][i].lastModified,
+								lastModified: (new Date(callArgs.doc[attr][i].lastModified)).getTime(),
 								content: byteArray.slice(byteArrayIndex, byteArrayIndex + this.config.fileChunkSize).join(',')
 							}
 						}
