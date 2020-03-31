@@ -1,6 +1,6 @@
 {
 	"name": "ns-limp",
-	"version": "6.1.0-dev",
+	"version": "6.1.1-dev",
 	"description": "Nativescript SDK for LIMP",
 	"main": "ns-limp",
 	"typings": "index.d.ts",
@@ -62,6 +62,7 @@
 	},
 	"dependencies": {
 		"jsrsasign": "^8.0.12",
+		"nativescript-background-http": "^4.2.1",
 		"nativescript-websockets": "^1.5.4",
 		"rxjs": "~6.4.0"
 	},

@@ -1,5 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef, OnDestroy } from "@angular/core";
-import { ApiService, Res, Doc } from 'ns-limp/api.service';
+// import { ApiService, Res, Doc } from 'ns-limp/api.service';
+import { ApiService, Res, Doc } from './api.service';
 import { ImageSource } from "tns-core-modules/image-source";
 import {  File } from "tns-core-modules/file-system";
 import { Page } from "tns-core-modules/ui/page/page";
@@ -14,13 +15,13 @@ import * as app from 'tns-core-modules/application';
     templateUrl: "./home.component.html"
 })
 export class HomeComponent implements OnInit, OnDestroy {
-    serverIp: string = 'ws://localhost:8081/ws';
-    token: string = '__ANON';
+    serverIp: string = 'wss://limp-sample-app.azurewebsites.net/ws';
+    token: string = '__ANON_TOKEN_f00000000000000000000012';
     conn_status : 'connected' | 'connecting' | 'not connected' = 'not connected';
 
     userType: 'username' | 'email' | 'phone' = 'email';
-    userName: string ;
-    password: string ;
+    userName: string  = "ADMIN@LIMP.MASAAR.COM";
+    password: string  = "__ADMINx0";
 
     endPoint: string = '';
     query: string ;
@@ -197,6 +198,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.api.init({
             api: this.serverIp,
             anonToken: this.token,
+            appId : '__public',
             authAttrs: ['email','username','phone'],
             debug: true
         });
@@ -268,7 +270,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         );
     }
     submit(): void {
-        this.api.call('staff/create', {
+        this.api.call('file/create', {
             doc: {
                 name: {
                     ar_AE: 'staff ar',
@@ -319,13 +321,42 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     fileUpload() {
-        let docs = {
-            file: this.imageFile
+
+        // this.doc = {
+        //     type: 'personal',
+        //     name: {
+        //         'ar_AE': this.name,
+        //         'en_AE': this.name
+        //     },
+        //     designation: {
+        //         'ar_AE': this.profession,
+        //         'en_AE': this.profession
+        //     },
+        //     attrs: attrs,
+        //     tags: this.tags,
+        // };
+
+        // if (this.imageFile) this.doc.photo = this.imageFile;
+
+        let doc = {
+            name: {
+                ar_AE: 'ali',
+                en_AE:'ali'
+            },
+            jobtitle: {
+                ar_AE: 'ali',
+                en_AE:'ali'
+            },
+            bio: {
+                ar_AE: 'ali',
+                en_AE:'ali'
+            },
+            photo: this.imageFile
         };
         this.results.push('file uploading process....');
         if(this.imageFile.length)
-        this.api.call( 'file/upload',{
-            doc: docs
+        this.api.call( 'staff/create',{
+            doc: doc
         },true).subscribe(
             (res)=>{
                 console.log(res);
