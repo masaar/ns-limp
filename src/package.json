@@ -61,7 +61,7 @@
 		"semver": "^5.6.0"
 	},
 	"dependencies": {
-		"jsrsasign": "^8.0.12",
+		"jsrsasign": "^10.2.0",
 		"nativescript-websockets": "^1.5.4",
 		"rxjs": "~6.4.0"
 	},
