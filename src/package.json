@@ -51,7 +51,7 @@
 	"devDependencies": {
 		"nativescript-websockets": "^1.5.3",
 		"@types/node": "^12.0.8",
-		"@angular/core": "~8.2.0",
+		"@angular/core": "~11.0.5",
 		"tns-core-modules": "^6.1.0",
 		"tns-platform-declarations": "^6.1.2",
 		"typescript": "~3.4.5",
